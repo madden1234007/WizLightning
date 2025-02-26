@@ -73,25 +73,6 @@ def gradient_no_pause(lamp_config,gradient_steps_override=None):
     colors_2=add_value_to_each_color(colors_2, update_existing=True, off_time=0, hold_time=0.2, fade_time=0.01)
     return colors_2
 
-
-
-        
-
-
-
-async def current_best(): 
-    #lamp_configs["playroom_fan"]["colors"]= copy.deepcopy(less_harsh_blue_colors)
-    #lamp_configs["playroom_fan"]["initial_brightness"]=100
-    #lamp_configs["playroom_fan"]["colors"]= gradient_then_pause(lamp_configs["playroom_fan"],gradient_steps_override=6)
-    #lamp_configs["playroom_fan"]["colors"]=add_value_to_each_color(lamp_configs["playroom_fan"]["colors"], update_existing=True, off_time=0.01, hold_time=0.5, fade_time=0)
-    
-
-    
-        
-    return lamp_configs
-
-
-
 async def messing_around_with_gradients_20250221():
     lamp_configs["playroom_fan"]["colors"]= copy.deepcopy(CURRENT_DEFAULT_COLORS)
     lamp_configs["dining"]["colors"]= copy.deepcopy(CURRENT_DEFAULT_COLORS)
