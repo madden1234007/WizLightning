@@ -3,7 +3,7 @@ import asyncio
 from pywizlight import wizlight, PilotBuilder
 import time
 import random
-from wiz_lighting_config import MIN_RGB_VALUE, MAX_RGB_VALUE, DEFAULT_HOLD_TIME_RANGE, DEFAULT_OFF_TIME, DEFAULT_FADE_TIME, MIN_FADE_TIME
+from wiz_lighting_config import MIN_RGB_VALUE, MAX_RGB_VALUE, DEFAULT_HOLD_TIME, DEFAULT_OFF_TIME, DEFAULT_FADE_TIME, MIN_FADE_TIME
 
 
 # Function to run the steps for a given bulb only
@@ -75,10 +75,10 @@ def _create_bulb_steps(num_bulbs, colors, step_index, bulb_shift=0):
         # Evaluate the 'hold_time' lambda function if it exists, otherwise get the value directly
         hold_time = colors[color_index].get("hold_time")() if callable(colors[color_index].get("hold_time")) else colors[color_index].get("hold_time", None)
         if hold_time is None:
-            hold_time = random.uniform(DEFAULT_HOLD_TIME_RANGE[0], DEFAULT_HOLD_TIME_RANGE[1])
+            hold_time = DEFAULT_HOLD_TIME
         fade_time = colors[color_index].get("fade_time", DEFAULT_FADE_TIME)
 
-        curr_hold_time = off_time if (off_time is not None and r == 0 and g == 0 and b == 0) else hold_time
+        curr_hold_time = off_time if (r == 0 and g == 0 and b == 0) else hold_time
         bulb_step = {
             "r": r,
             "g": g,
