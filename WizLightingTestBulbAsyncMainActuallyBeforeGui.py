@@ -76,7 +76,7 @@ def after_init_devices_2(lamp_configs):
 
 
 async def main():
-    logging.basicConfig(level=logging.DEBUG) #this is a debug level, we might want to change to INFO or WARNING
+    logging.basicConfig(level=logging.INFO)
     #logging.basicConfig(level=logging.INFO)
     lamp_configs = init_devices() #Initialize devices from config file
     define_dynamic_colors() #initialize dynamic colors if you need them
