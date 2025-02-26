@@ -8,19 +8,15 @@ from fractions import Fraction
 import math
 import copy
 from pywizlight import wizlight, PilotBuilder
-from wiz_lighting_config import DEFAULT_DEVICE_CONFIGS, CURRENT_DEFAULT_COLORS, RAINBOW_COLORS, BLUE_PINK_COLORS, MIN_FADE_TIME
+from wiz_lighting_config import CURRENT_DEFAULT_COLORS, RAINBOW_COLORS, BLUE_PINK_COLORS, MIN_FADE_TIME, DEFAULT_OFF_TIME, DEFAULT_HOLD_TIME, DEFAULT_FADE_TIME
 
 
-def init_devices():
-    global lamp_configs
-    lamp_configs = copy.deepcopy(DEFAULT_DEVICE_CONFIGS) # Use config file defaults
-    # Add colors to lamp configs.  This needs to be done after the deepcopy so the original colors are not affected.
-    lamp_configs["playroom_fan"]["colors"] = copy.deepcopy(CURRENT_DEFAULT_COLORS)
-    lamp_configs["dining"]["colors"] = copy.deepcopy(CURRENT_DEFAULT_COLORS)
-
-def init_colors():
-    # This function is no longer needed because colors are now defined in wiz_lighting_config.py
-    pass
+def update_config(lamp_configz, updates):
+    for key in updates:
+        if key in lamp_configz:
+            for keyy in updates[key]:
+                lamp_configz[key][keyy] = updates[key][keyy]
+    return lamp_configz
 
 def make_colors_special(lamp_config):   
     colors = _extend_colors_with_duplication(
@@ -83,53 +79,13 @@ def gradient_no_pause(lamp_config,gradient_steps_override=None):
 
 
 
-async def current_best():      
-    lamp_configs = {
-        "dining": {
-            "loopName": "dining",
-            "ips": ["10.0.0.181", "10.0.0.182", "10.0.0.183", "10.0.0.184", "10.0.0.185", "10.0.0.186","10.0.0.190","10.0.0.191"],
-            "initial_brightness": 90,
-            "bulb_shift": 1,
-            "check_brightness_each_step": True,
-            "check_brightness_first_step": True,
-            "max_loop": 999,
-            "colors": copy.deepcopy(RAINBOW_COLORS), #RAINBOW_COLORS
-            "off_time": 0,
-            "hold_time": lambda: 2*int(random.randint(0,0)*0.05),
-            "fade_time": 0,
-        },
-        "playroom_fan": {
-            "loopName": "playroom_fan",
-            "ips": ["10.0.0.208","10.0.0.200","10.0.0.201","10.0.0.189","10.0.0.188","10.0.0.203","10.0.0.204","10.0.0.205","10.0.0.187","10.0.0.137","10.0.0.202","10.0.0.207","10.0.0.206"], #all 13 from left/right snaking,
-            "initial_brightness": 50,
-            "bulb_shift": 0,
-            "check_brightness_each_step": True,
-            "check_brightness_first_step": False,
-            "max_loop": 999,
-            "colors": copy.deepcopy(RAINBOW_COLORS), #RAINBOW_COLORS
-            "off_time": 0,
-            "hold_time": lambda: 2*int(random.randint(0,0)*0.05),
-            "fade_time": 0,
-        }
-    }  
+async def current_best(): 
     #lamp_configs["playroom_fan"]["colors"]= copy.deepcopy(less_harsh_blue_colors)
     #lamp_configs["playroom_fan"]["initial_brightness"]=100
     #lamp_configs["playroom_fan"]["colors"]= gradient_then_pause(lamp_configs["playroom_fan"],gradient_steps_override=6)
     #lamp_configs["playroom_fan"]["colors"]=add_value_to_each_color(lamp_configs["playroom_fan"]["colors"], update_existing=True, off_time=0.01, hold_time=0.5, fade_time=0)
     
-    lamp_configs["playroom_fan"]["colors"]= copy.deepcopy(BLUE_PINK_COLORS)
-    lamp_configs["playroom_fan"]["initial_brightness"]=100
-    lamp_configs["playroom_fan"]["colors"]= _extend_colors_with_reverse(lamp_configs["playroom_fan"]["colors"])
-    lamp_configs["playroom_fan"]["colors"]=add_value_to_each_color(lamp_configs["playroom_fan"]["colors"], update_existing=True, off_time=0.01, hold_time=0.5, fade_time=3)
-    current_default_colors=CURRENT_DEFAULT_COLORS
-    lamp_configs["dining"]["colors"]= add_value_to_each_color(copy.deepcopy(current_default_colors), update_existing=True, off_time=0.01, hold_time=1.25, fade_time=1.25)
-    while True:
-        tasks = [   asyncio.create_task(_run_bulbs(lamp_config, _create_steps(len(lamp_config["ips"]), lamp_config["colors"], lamp_config["bulb_shift"]), random_color_check=0, async_groups="steps"))   for lamp_config in lamp_configs.values()]
-    
-        for t in tasks:
-            t.add_done_callback(lambda t: logging.error("Lamp group finished unexpectedly"))
-        # Instead of waiting on all tasks to finish (which may never happen), block indefinitely.
-        await asyncio.Event().wait()
+
     
         
     return lamp_configs
@@ -241,9 +197,9 @@ def _add_off_after_everything_steps(steps, num_bulbs, add_off_after_everything=1
         for step in steps:
             off_step = []
             for bulb_index in range(num_bulbs):
-                current_off_time = step[bulb_index].get("off_time")
-                current_hold_time = step[bulb_index].get("hold_time")
-                current_fade_time = step[bulb_index].get("fade_time")
+                current_off_time = step[bulb_index].get("off_time", DEFAULT_OFF_TIME)
+                current_hold_time = step[bulb_index].get("hold_time", DEFAULT_HOLD_TIME)
+                current_fade_time = step[bulb_index].get("fade_time", DEFAULT_FADE_TIME)
                 # Debug print to show current time values for troubleshooting.
                 print(f"Debug: bulb_index {bulb_index} -> off_time: {current_off_time}, hold_time: {current_hold_time}, fade_time: {current_fade_time}")
                 off_step.append({
