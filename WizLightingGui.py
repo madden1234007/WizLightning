@@ -5,18 +5,11 @@ import random
 import logging
 import copy
 import tkinter as tk
-from tkinter import ttk, scrolledtext
+from tkinter import ttk, scrolledtext, messagebox
 import threading
 from pywizlight import wizlight, PilotBuilder
-from WizLightingDefs import _create_steps, _extend_colors_with_duplication, \
-    _extend_colors_with_reverse, _insert_offs_after_each_color, \
-    _add_off_after_everything_steps, _reverse_steps, _run_bulbs, add_value_to_each_color, \
-    off_to_blue_and_on_to_red, make_gradient_between_each_color, \
-    make_colors_special, make_steps_w_colors, update_config
-from wiz_lighting_default_device_config import ips
-from wiz_lighting_config import DEFAULT_HOLD_TIME, DEFAULT_HOLD_TIME_RANGE, DEFAULT_OFF_TIME, DEFAULT_FADE_TIME, \
-    MIN_FADE_TIME, RAINBOW_COLORS, DIVERSE_COLORS, BLUE_COLORS, BLUE_PINK_COLORS, CURRENT_DEFAULT_COLORS, \
-    make_default_config_dict
+from WizLightingDefs import _create_steps, _run_bulbs
+from wiz_lighting_config import make_default_config_dict
 from wiz_extended_colors import define_dynamic_colors
 from WizLightingInit import init_devices, after_init_devices_2
 
@@ -30,55 +23,66 @@ initial_color_textboxes = {}
 final_color_textboxes = {}
 lamp_group_frames = {}
 step_textboxes = {}
-start_button = None #add this
+start_button = None
 
 class LampGroup:
     def __init__(self, name, ips, colors=None, bulb_shift=0, is_enabled=False):
         config = make_default_config_dict(name, ips)
         for key, value in config.items():
             setattr(self, key, value)
-        if colors is not None:
-            self.colors = colors
+        self.initial_colors = copy.deepcopy(colors) if colors is not None else []
         self.bulb_shift = bulb_shift
         self.is_enabled = is_enabled
         self.task = None
         self.name = name
         self.ips = ips
-        self.initial_colors = copy.deepcopy(self.colors)
+        self.colors = []  # Create the proper list
+        self.apply_new_colors(colors)  # Populate self.colors
         self.steps = _create_steps(len(ips), self.colors, bulb_shift)
 
     def __str__(self):
         return f"<LampGroup: {self.name}, enabled:{self.is_enabled}>"
 
     def apply_new_colors(self, new_colors):
-        self.colors = new_colors
+        """Applies new colors to the group, preserving additional parameters."""
+        if new_colors is None:
+            self.colors = []
+            self.steps = _create_steps(len(self.ips), self.colors, self.bulb_shift)
+            return
+
+        # Create a list to hold the new colors with preserved parameters
+        new_colors_with_params = []
+        
+        # Extract all keys from initial colors to preserve extra params.
+        keys_to_preserve = set()
+        for color in self.initial_colors:
+            keys_to_preserve.update(color.keys())
+        
+
+        for i, color in enumerate(new_colors):
+            # Create a new color dictionary with r, g, b values
+            new_color = {'r': color.get('r', 0), 'g': color.get('g', 0), 'b': color.get('b', 0)}
+            
+            # Add any other keys from the original color
+            for key in keys_to_preserve:
+              if key != 'r' and key != 'g' and key != 'b' and key in self.initial_colors[i]:
+                  new_color[key] = self.initial_colors[i][key]
+            new_colors_with_params.append(new_color)
+        
+        self.colors = new_colors_with_params
         self.steps = _create_steps(len(self.ips), self.colors, self.bulb_shift)
+
 
 # --- Helper Function to Format Color Data ---
 def format_color_data(colors):
     """Formats color data for display in the text boxes with line breaks."""
-    return "\n".join(str(color) for color in colors)
+    return str(colors)
+
 
 # --- Helper function to format step data for display in the text boxes with indentation and line breaks ---
 def format_step_data(steps):
     """Formats step data for display in the text boxes with indentation and line breaks."""
-    if not steps:
-        return "[]"
-    if isinstance(steps[0], list):
-        return str(steps)
-    formatted_steps = []
-    for step in steps:
-        if isinstance(step, dict):
-            formatted_step = "{\n"
-            for key, value in step.items():
-                formatted_step += f"    {key}: {value},\n"
-            formatted_step += "}"
-            formatted_steps.append(formatted_step)
-        else:
-            return str(steps)
-    return "\n".join(formatted_steps)
-
-
+    return str(steps)
 
 
 # --- Main Lamp Control Logic ---
@@ -116,6 +120,7 @@ async def lamp_control_logic():
 
         await asyncio.sleep(1)
 
+
 # --- GUI Functions ---
 def start_lamp_control():
     global running
@@ -127,6 +132,7 @@ def start_lamp_control():
         lamp_thread.start()
     else:
         stop_lamp_control()
+
 
 def stop_lamp_control():
     global running, loop
@@ -144,12 +150,14 @@ def stop_lamp_control():
             group.task = None
         update_lamp_gui()
 
+
 def toggle_group_control(group_name):
     global lamp_groups, running
     group = lamp_groups[group_name]
     group.is_enabled = not group.is_enabled
     logging.info(f"Toggling group {group_name} to {'enabled' if group.is_enabled else 'disabled'}")
     update_lamp_gui()
+
 
 def asyncio_run_lamp_control():
     global loop
@@ -162,6 +170,7 @@ def asyncio_run_lamp_control():
     finally:
         pass
 
+
 def update_lamp_gui():
     """Updates the lamp start/stop buttons in the GUI."""
     for group_name, button in lamp_buttons.items():
@@ -171,6 +180,7 @@ def update_lamp_gui():
                     button.config(text=f"Disable {group_name}")
                 else:
                     button.config(text=f"Enable {group_name}")
+
 
 def update_steps(group_name):
     """Updates the steps for the selected group."""
@@ -182,6 +192,8 @@ def update_steps(group_name):
         group.steps = new_steps
     except (SyntaxError, NameError, ValueError) as e:
         logging.error(f"Invalid step format for {group_name}: {e}. Please use a list of dictionaries.")
+        messagebox.showerror("Error", f"Invalid step format for {group_name}: {e}. Please use a list of dictionaries.")
+
 
 def load_default_steps(group_name):
     global step_textboxes, final_color_textboxes, initial_color_textboxes
@@ -193,6 +205,7 @@ def load_default_steps(group_name):
     final_color_textboxes[group_name].insert(tk.END, str(group.colors))
     initial_color_textboxes[group_name].delete("1.0", tk.END)
     initial_color_textboxes[group_name].insert(tk.END, str(group.initial_colors))
+
 
 from tkinter import messagebox
 
@@ -206,30 +219,11 @@ def apply_colors(group_name):
         
         #Improved validation of the data:
         try:
-          new_initial_colors = eval(new_initial_colors_str)
-          new_final_colors = eval(new_final_colors_str)
-
-          # Validate data type
-          if not isinstance(new_initial_colors, list) or not isinstance(new_final_colors, list):
-            raise ValueError("Colors must be a list.")
-          for color in new_initial_colors:
-            if not isinstance(color, dict) or 'r' not in color or 'g' not in color or 'b' not in color:
-              raise ValueError("Each color must be a dict with 'r', 'g', 'b'.")
-            for k, v in color.items():
-                if not isinstance(v, int) or not 0 <= v <= 255:
-                  raise ValueError("RGB values must be integers (0-255)")
-
-          for color in new_final_colors:
-            if not isinstance(color, dict) or 'r' not in color or 'g' not in color or 'b' not in color:
-              raise ValueError("Each color must be a dict with 'r', 'g', 'b'.")
-            for k, v in color.items():
-                if not isinstance(v, int) or not 0 <= v <= 255:
-                  raise ValueError("RGB values must be integers (0-255)")
-          
-          group.initial_colors = new_initial_colors
-          group.apply_new_colors(new_final_colors)
-          update_steps(group_name)
-          
+            new_initial_colors = eval(new_initial_colors_str)
+            new_final_colors = eval(new_final_colors_str)
+            group.apply_new_colors(new_final_colors)
+            group.initial_colors = new_initial_colors
+            update_steps(group_name)
         except (SyntaxError, NameError, ValueError) as e:
             logging.error(f"Invalid color format for {group_name}: {e}")
             messagebox.showerror("Error", f"Invalid color format for {group_name}: {e}")
