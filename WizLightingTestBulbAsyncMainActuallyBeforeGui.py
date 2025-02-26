@@ -9,7 +9,7 @@ from WizLightingDefs import  _create_steps, _extend_colors_with_duplication, \
     _extend_colors_with_reverse, _insert_offs_after_each_color, \
     _add_off_after_everything_steps, _reverse_steps, _run_bulbs, add_value_to_each_color, \
     off_to_blue_and_on_to_red, make_gradient_between_each_color, \
-   make_colors_special, make_steps_w_colors, current_best, update_config
+   make_colors_special, make_steps_w_colors, update_config
 from wiz_lighting_default_device_config import ips
 from wiz_lighting_config import DEFAULT_HOLD_TIME, DEFAULT_HOLD_TIME_RANGE, DEFAULT_OFF_TIME, DEFAULT_FADE_TIME, MIN_FADE_TIME, RAINBOW_COLORS, DIVERSE_COLORS, BLUE_COLORS, BLUE_PINK_COLORS, CURRENT_DEFAULT_COLORS, make_default_config_dict
 from wiz_extended_colors import define_dynamic_colors
