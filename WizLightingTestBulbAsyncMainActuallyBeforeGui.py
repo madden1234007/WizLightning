@@ -65,19 +65,12 @@ def after_init_devices_2(lamp_configs):
 
     })
 
-
-    lamp_configs["playroom_fan"]["colors"]= _extend_colors_with_reverse(lamp_configs["playroom_fan"]["colors"])
-    lamp_configs["playroom_fan"]["colors"]=add_value_to_each_color(lamp_configs["playroom_fan"]["colors"], update_existing=True, off_time=0.01, hold_time=0.5, fade_time=3)
-
-    #for a test, remove dining from lamp_configs
-    lamp_configs.pop("dining")
-
     return lamp_configs
 
 
 async def main():
+    #logging.basicConfig(level=logging.DEBUG)
     logging.basicConfig(level=logging.INFO)
-    #logging.basicConfig(level=logging.INFO)
     lamp_configs = init_devices() #Initialize devices from config file
     define_dynamic_colors() #initialize dynamic colors if you need them
     lamp_configs = after_init_devices_2(lamp_configs)
